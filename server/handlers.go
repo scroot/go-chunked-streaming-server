@@ -1,9 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 // ChunkedResponseWriter Define a response writer
@@ -18,10 +20,17 @@ func (rw ChunkedResponseWriter) Write(p []byte) (nn int, err error) {
 	return
 }
 
+func fileKey(u *url.URL) string {
+	if u.Scheme == "" {
+		return fmt.Sprintf("%s%s", u.Host, u.Path)
+	}
+	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+}
+
 // GetHandler Sends file bytes
 func GetHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[r.URL.String()]
+	f, ok := Files[fileKey(r.URL)]
 	FilesLock.RUnlock()
 
 	if !ok {
@@ -41,7 +50,7 @@ func GetHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 // HeadHandler Sends if file exists
 func HeadHandler(w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[r.URL.String()]
+	f, ok := Files[fileKey(r.URL)]
 	FilesLock.RUnlock()
 
 	if !ok {
@@ -57,7 +66,7 @@ func HeadHandler(w http.ResponseWriter, r *http.Request) {
 
 // PostHandler Writes a file
 func PostHandler(basePath string, w http.ResponseWriter, r *http.Request) {
-	name := r.URL.String()
+	name := fileKey(r.URL)
 	f := NewFile(name, r.Header.Get("Content-Type"))
 
 	FilesLock.Lock()
@@ -85,7 +94,7 @@ func PutHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 // DeleteHandler Deletes a file
 func DeleteHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[r.URL.String()]
+	f, ok := Files[fileKey(r.URL)]
 	FilesLock.RUnlock()
 
 	if !ok {
