@@ -8,8 +8,25 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	BasePath string
+)
+
+func onEvicted(_ Key, value interface{}) {
+	f, ok := value.(*File)
+	if !ok {
+		return
+	}
+	if err := f.RemoveFromDisk(BasePath); err != nil {
+		log.Println(err)
+	}
+}
+
 // StartHTTPServer Starts the webserver
 func StartHTTPServer(basePath string, port int, certFilePath string, keyFilePath string) error {
+	BasePath = basePath
+	Files.OnEvicted = onEvicted
+
 	r := mux.NewRouter()
 
 	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

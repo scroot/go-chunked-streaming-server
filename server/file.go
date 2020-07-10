@@ -14,7 +14,7 @@ import (
 
 var (
 	// Files Array of on the fly files
-	Files = map[string]*File{}
+	Files = NewCache(32)
 
 	// FilesLock Lock used to write / read files
 	FilesLock = new(sync.RWMutex)
@@ -133,7 +133,8 @@ func (f *File) RemoveFromDisk(baseDir string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	name := path.Join(baseDir, f.Name)
+	baseDir, _ = filepath.Abs(baseDir)
+	name := filepath.Join(baseDir, f.Name)
 	err := os.Remove(name)
 
 	// even if we get an error, lets act as if the file is completely removed

@@ -30,13 +30,14 @@ func fileKey(u *url.URL) string {
 // GetHandler Sends file bytes
 func GetHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[fileKey(r.URL)]
+	val, ok := Files.Get(fileKey(r.URL))
 	FilesLock.RUnlock()
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	f := val.(*File)
 
 	log.Println("GET Content-Type " + f.ContentType)
 
@@ -50,13 +51,14 @@ func GetHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 // HeadHandler Sends if file exists
 func HeadHandler(w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[fileKey(r.URL)]
+	val, ok := Files.Get(fileKey(r.URL))
 	FilesLock.RUnlock()
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	f := val.(*File)
 
 	w.Header().Set("Content-Type", f.ContentType)
 	w.Header().Set("Transfer-Encoding", "chunked")
@@ -70,7 +72,7 @@ func PostHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 	f := NewFile(name, r.Header.Get("Content-Type"))
 
 	FilesLock.Lock()
-	Files[name] = f
+	Files.Add(name, f)
 	FilesLock.Unlock()
 
 	// Start writing to file without holding lock so that GET requests can read from it
@@ -94,16 +96,17 @@ func PutHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 // DeleteHandler Deletes a file
 func DeleteHandler(basePath string, w http.ResponseWriter, r *http.Request) {
 	FilesLock.RLock()
-	f, ok := Files[fileKey(r.URL)]
+	val, ok := Files.Get(fileKey(r.URL))
 	FilesLock.RUnlock()
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	f := val.(*File)
 
 	FilesLock.Lock()
-	delete(Files, r.URL.String())
+	Files.Remove(fileKey(r.URL))
 	FilesLock.Unlock()
 
 	f.RemoveFromDisk(basePath)

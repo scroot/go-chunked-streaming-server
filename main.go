@@ -10,7 +10,7 @@ import (
 var (
 	certFilePath = flag.String("c", "", "Certificate file path (only for https)")
 	keyFilePath  = flag.String("k", "", "Key file path (only for https)")
-	baseOutPath  = flag.String("p", "./content", "Path used to store")
+	baseOutPath  = flag.String("p", `./content`, "Path used to store")
 	port         = flag.Int("i", 9094, "Port used for HTTP ingress/ egress")
 )
 
